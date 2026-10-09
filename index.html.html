@@ -1,0 +1,865 @@
+<title>Booking Message Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+  /* Layout: form on the left, two ready-to-copy messages on the right (sticky on desktop); stacked on phones. */
+  :root {
+    --bg: #eef2ef;
+    --surface: #ffffff;
+    --surface-2: #f5f8f6;
+    --fg: #14211d;
+    --muted: #5d6e68;
+    --line: #d5dfda;
+    --accent: #0f766e;
+    --accent-fg: #ffffff;
+    --accent-soft: #d9f0ec;
+    --ok: #15803d;
+    --danger: #b42318;
+    --font-display: "Bai Jamjuree", "Noto Sans Thai", system-ui, sans-serif;
+    --font-body: "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1613;
+      --surface: #16221e;
+      --surface-2: #1b2924;
+      --fg: #e6efeb;
+      --muted: #94a8a1;
+      --line: #2b3d37;
+      --accent: #2dd4bf;
+      --accent-fg: #06201c;
+      --accent-soft: #15332e;
+      --ok: #4ade80;
+      --danger: #f97066;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1613;
+    --surface: #16221e;
+    --surface-2: #1b2924;
+    --fg: #e6efeb;
+    --muted: #94a8a1;
+    --line: #2b3d37;
+    --accent: #2dd4bf;
+    --accent-fg: #06201c;
+    --accent-soft: #15332e;
+    --ok: #4ade80;
+    --danger: #f97066;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    padding-inline: 16px;
+    padding-block: 20px 40px;
+  }
+  .wrap { max-width: 1120px; margin-inline: auto; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 18px; }
+  h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .outputs { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  @media (max-width: 860px) { .outputs { position: static; } }
+
+  h2 { font-family: var(--font-display); font-size: 0.95rem; margin: 0; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 500; color: var(--muted); min-width: 0; }
+  input, select, textarea {
+    font: inherit; font-size: 1rem; color: var(--fg);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 9px 10px; width: 100%; min-width: 0;
+  }
+  textarea { resize: vertical; line-height: 1.45; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label {
+    align-items: center; text-align: center; padding: 10px 8px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2);
+    color: var(--fg); font-size: 0.92rem; font-weight: 600;
+  }
+  .seg input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { padding: 9px 16px; font-size: 0.95rem; }
+  .tab.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .quick-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  button.add { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .reply-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+  .reply { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .reply .rtitle { font-family: var(--font-display); font-weight: 700; font-size: 1rem; background: transparent; border-color: transparent; padding: 6px 8px; }
+  .reply .rtitle:hover, .reply .rtitle:focus { background: var(--surface-2); border-color: var(--line); }
+  .reply textarea { font-size: 0.93rem; }
+  .reply .pickrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; color: var(--muted); }
+  .reply .pickrow input { width: 11rem; flex: 0 1 auto; }
+  .reply .actions { display: flex; gap: 8px; }
+  .reply .actions .copy { flex: 1 1 auto; padding: 10px 14px; font-size: 1rem; }
+  .empty p { margin: 0; }
+
+  .placebox { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; background: var(--surface-2); }
+  .placebox select { background: var(--surface); }
+
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
+    border-radius: 6px; padding: 8px 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.small { font-size: 0.85rem; padding: 6px 10px; font-weight: 500; }
+  button.danger { color: var(--danger); }
+  button.copy {
+    background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
+    font-size: 1.05rem; padding: 12px 18px; flex: 1 1 auto;
+  }
+  button.copy.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+  .out-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .tag { font-size: 0.78rem; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .out textarea { font-size: 0.95rem; background: var(--surface-2); }
+  .hint { color: var(--muted); font-size: 0.8rem; margin: 0; }
+  .total { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--fg); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Booking Message Maker</h1>
+    <p>กรอกข้อมูลลูกค้า แล้วกดก๊อปข้อความส่งได้เลย <span id="syncNote">รายการที่บันทึกไว้เก็บในเครื่องนี้เท่านั้น</span></p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabBooking" class="tab on" aria-selected="true">สร้างข้อความจอง</button>
+    <button type="button" role="tab" id="tabQuick" class="tab" aria-selected="false">ข้อความสำเร็จรูป</button>
+  </div>
+
+  <div class="grid" id="viewBooking">
+    <!-- LEFT: form -->
+    <div class="panel">
+      <h2>โปรแกรมทัวร์</h2>
+      <label for="preset">เลือกโปรแกรมที่บันทึกไว้
+        <select id="preset"></select>
+      </label>
+      <label for="program">Tour Program (บรรทัดแรกคือชื่อทัวร์ บรรทัดต่อไปคือสถานที่)
+        <textarea id="program" rows="5"></textarea>
+      </label>
+      <div class="btns">
+        <button type="button" class="small" id="savePreset">บันทึกเป็นโปรแกรมใหม่</button>
+        <button type="button" class="small danger" id="delPreset" hidden>ลบโปรแกรมนี้</button>
+      </div>
+      <label for="code">รหัสการจอง (Code) เว้นว่างถ้าทัวร์นี้ไม่มี
+        <input type="text" id="code" placeholder="เช่น GYGG45HAVN2V" autocomplete="off">
+      </label>
+
+      <h2>วันและเวลา</h2>
+      <div class="row">
+        <label for="date">วันที่ไปทัวร์
+          <input type="date" id="date">
+        </label>
+        <label for="pickup"><span id="pickupLabel">เวลารับ (Pick-up time)</span>
+          <input type="text" id="pickup" value="07.00 - 07.30 AM">
+        </label>
+      </div>
+
+      <h2>ลูกค้า</h2>
+      <div class="row">
+        <label for="name">ชื่อลูกค้า
+          <input type="text" id="name" value="Example Guest" autocomplete="off">
+        </label>
+        <label for="phone">เบอร์โทร
+          <input type="text" id="phone" value="+00 000 000 000" autocomplete="off">
+        </label>
+      </div>
+      <div class="row">
+        <label for="adults">ผู้ใหญ่ (Adult)
+          <input type="number" id="adults" min="0" value="1" inputmode="numeric">
+        </label>
+        <label for="children">เด็ก (Child)
+          <input type="number" id="children" min="0" value="0" inputmode="numeric">
+        </label>
+      </div>
+
+      <h2>รูปแบบการรับ</h2>
+      <div class="seg" role="radiogroup" aria-label="รูปแบบการรับ">
+        <input type="radio" name="mode" id="modeHotel" value="hotel" checked>
+        <label for="modeHotel">รับที่โรงแรม</label>
+        <input type="radio" name="mode" id="modeMeet" value="meet">
+        <label for="modeMeet">นัดจุดพบ (Meeting Point)</label>
+      </div>
+      <div id="placeBox" class="placebox" hidden>
+        <label for="place">จุดนัดพบที่บันทึกไว้ (เลือกแล้วช่องด้านล่างกรอกให้เอง)
+          <select id="place"></select>
+        </label>
+        <div class="btns">
+          <button type="button" class="small" id="savePlace">บันทึกจุดนัดพบนี้ไว้ใช้ครั้งต่อไป</button>
+          <button type="button" class="small danger" id="delPlace" hidden>ลบจุดนัดพบนี้</button>
+        </div>
+      </div>
+      <label for="hotel"><span id="hotelLabel">ชื่อโรงแรม</span>
+        <input type="text" id="hotel" value="Anodard" autocomplete="off">
+      </label>
+      <label for="map">ลิงก์แผนที่ (Google Maps)
+        <input type="text" id="map" value="https://maps.app.goo.gl/FZ7NoevMFY3CBhu89" autocomplete="off">
+      </label>
+
+      <h2>ราคา</h2>
+      <div class="row">
+        <label for="priceAdult">ราคาผู้ใหญ่ (THB / คน)
+          <input type="number" id="priceAdult" min="0" value="1400" inputmode="numeric">
+        </label>
+        <label for="priceChild">ราคาเด็ก (THB / คน)
+          <input type="number" id="priceChild" min="0" placeholder="เว้นว่าง = ราคาเท่าผู้ใหญ่" inputmode="numeric">
+        </label>
+      </div>
+      <p class="hint">ยอดรวม: <span class="total" id="totalShow"></span> THB</p>
+
+      <div class="btns">
+        <button type="button" class="small" id="clearCustomer">ล้างข้อมูลลูกค้า (เริ่มรายใหม่)</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: outputs -->
+    <div class="outputs">
+      <div class="panel out">
+        <div class="out-head"><h2>ข้อความที่ 1</h2><span class="tag">ยืนยันการจอง</span></div>
+        <textarea id="msg1" rows="21" aria-label="ข้อความที่ 1"></textarea>
+        <div class="btns"><button type="button" class="copy" id="copy1">ก๊อปข้อความที่ 1</button></div>
+      </div>
+
+      <div class="panel out">
+        <div class="out-head"><h2>ข้อความที่ 2</h2><span class="tag">แจ้งชำระเงิน</span></div>
+        <div class="row">
+          <label for="payAmount">ยอดที่ต้องจ่าย (THB)
+            <input type="number" id="payAmount" min="0" inputmode="numeric">
+          </label>
+          <label for="payPax">จำนวนคน (ข้อความในวงเล็บ)
+            <input type="text" id="payPax" autocomplete="off">
+          </label>
+        </div>
+        <p class="hint">ช่องสองช่องนี้คำนวณจากด้านซ้ายให้ก่อน แก้เองได้เลย เช่น 2800 และ 2 Adults</p>
+        <textarea id="msg2" rows="7" aria-label="ข้อความที่ 2"></textarea>
+        <div class="btns"><button type="button" class="copy" id="copy2">ก๊อปข้อความที่ 2</button></div>
+        <p class="hint">แก้ข้อความในช่องได้ก่อนก๊อป แต่ถ้าแก้ข้อมูลด้านซ้ายอีก ข้อความจะสร้างใหม่</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewQuick" hidden>
+    <div class="quick-top">
+      <p class="hint">ข้อความที่ใช้ตอบลูกค้าบ่อยๆ แก้ไขได้ทุกช่อง แล้วกดก๊อปส่งได้เลย</p>
+      <button type="button" class="add" id="addReply">+ เพิ่มช่องข้อความใหม่</button>
+    </div>
+    <div id="replyList" class="reply-list"></div>
+    <div id="replyEmpty" class="panel empty" hidden>
+      <p>ยังไม่มีข้อความสำเร็จรูป กดเพิ่มช่องใหม่ หรือโหลดข้อความตัวอย่าง 5 อันที่ใช้บ่อย</p>
+      <div class="btns"><button type="button" id="seedReplies">โหลดข้อความตัวอย่าง</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+
+  var DEFAULT_PRESETS = [
+    { name: "ONE DAY CHIANG RAI TOUR", program: "ONE DAY CHIANG RAI TOUR\nWhite Temple\nBlue Temple\nRed Temple \nLalitta Cafe", price: 1400 },
+    { name: "Ethical Elephant Experience", program: "Chiang Mai: Ethical Elephant Experience", price: "" }
+  ];
+
+  // Saved lists are shared by everyone who opens the page (db). If db is not available,
+  // they fall back to this browser only.
+  var db = null;
+  var useDb = false;
+  var pendingPreset = null, pendingPlace = null;
+  function byName(a, b) { return String(a.name).localeCompare(String(b.name)); }
+  function listLabel() { return useDb ? "  (ทีม)" : "  (ของฉัน)"; }
+
+  var custom = [];
+  try { custom = JSON.parse(localStorage.getItem("bmm_presets") || "[]") || []; } catch (e) { custom = []; }
+  function saveCustom() { if (useDb) return; try { localStorage.setItem("bmm_presets", JSON.stringify(custom)); } catch (e) {} }
+
+  function allPresets() { return DEFAULT_PRESETS.concat(custom); }
+  function selectedPresetName() { var p = allPresets()[Number($("preset").value)]; return p ? p.name : null; }
+
+  function flash(btn, text) {
+    var t = btn.getAttribute("data-label") || btn.textContent;
+    btn.setAttribute("data-label", t);
+    btn.textContent = text;
+    setTimeout(function () { btn.textContent = t; }, 1600);
+  }
+  var SAVE_FAIL = "บันทึกไม่ได้ (ต้องเป็น Contributor ขึ้นไป)";
+
+  function renderPresets(selectedName) {
+    var sel = $("preset");
+    sel.innerHTML = "";
+    allPresets().forEach(function (p, i) {
+      var o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = p.name + (i >= DEFAULT_PRESETS.length ? listLabel() : "");
+      sel.appendChild(o);
+    });
+    if (selectedName != null) {
+      allPresets().forEach(function (p, i) { if (p.name === selectedName) sel.value = String(i); });
+    }
+    $("delPreset").hidden = Number(sel.value) < DEFAULT_PRESETS.length;
+  }
+
+  function applyPreset() {
+    var p = allPresets()[Number($("preset").value)];
+    if (!p) return;
+    $("program").value = p.program;
+    if (p.price !== "" && p.price != null) $("priceAdult").value = p.price;
+    $("delPreset").hidden = Number($("preset").value) < DEFAULT_PRESETS.length;
+    build();
+    syncPay();
+  }
+
+  // Saved meeting points: two fixed ones plus any the user adds (kept in this browser).
+  var DEFAULT_PLACES = [
+    { name: "Lanna Elephant Care", map: "https://maps.app.goo.gl/YqHjH6s9RfwpJEzb8" },
+    { name: "Durianism Cafe Chiang Mai", map: "https://maps.app.goo.gl/eCoBbLUcfZQDxaxs6" }
+  ];
+  var customPlaces = [];
+  try { customPlaces = JSON.parse(localStorage.getItem("bmm_places") || "[]") || []; } catch (e) { customPlaces = []; }
+  function saveCustomPlaces() { if (useDb) return; try { localStorage.setItem("bmm_places", JSON.stringify(customPlaces)); } catch (e) {} }
+  function allPlaces() { return DEFAULT_PLACES.concat(customPlaces); }
+  function selectedPlaceName() { var p = allPlaces()[Number($("place").value)]; return p ? p.name : null; }
+
+  function renderPlaces(selectedName) {
+    var sel = $("place");
+    sel.innerHTML = "";
+    var first = document.createElement("option");
+    first.value = "";
+    first.textContent = "เลือกจุดนัดพบ...";
+    sel.appendChild(first);
+    allPlaces().forEach(function (p, i) {
+      var o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = p.name + (i >= DEFAULT_PLACES.length ? listLabel() : "");
+      sel.appendChild(o);
+    });
+    if (selectedName != null) {
+      allPlaces().forEach(function (p, i) { if (p.name === selectedName) sel.value = String(i); });
+    }
+    $("delPlace").hidden = sel.value === "" || Number(sel.value) < DEFAULT_PLACES.length;
+  }
+
+  $("place").addEventListener("change", function () {
+    var v = $("place").value;
+    if (v !== "") {
+      var p = allPlaces()[Number(v)];
+      $("hotel").value = p.name;
+      $("map").value = p.map;
+    }
+    $("delPlace").hidden = v === "" || Number(v) < DEFAULT_PLACES.length;
+    build();
+  });
+
+  $("savePlace").addEventListener("click", function () {
+    var name = $("hotel").value.trim();
+    var map = $("map").value.trim();
+    if (!name) { $("hotel").focus(); return; }
+    var btn = $("savePlace");
+    var existing = -1;
+    customPlaces.forEach(function (p, i) { if (p.name === name) existing = i; });
+    var isDefault = DEFAULT_PLACES.some(function (p) { return p.name === name; });
+    if (isDefault) { flash(btn, "มีจุดนี้อยู่แล้ว"); renderPlaces(name); return; }
+    var item = { name: name, map: map };
+    if (useDb) {
+      var ref = db.collection("places").doc(existing >= 0 ? customPlaces[existing].id : undefined);
+      pendingPlace = name;
+      ref.set(item).then(function () { flash(btn, "บันทึกแล้ว"); }, function () { pendingPlace = null; flash(btn, SAVE_FAIL); });
+    } else {
+      if (existing >= 0) customPlaces[existing] = item; else customPlaces.push(item);
+      saveCustomPlaces();
+      renderPlaces(name);
+      flash(btn, "บันทึกแล้ว");
+    }
+  });
+
+  $("delPlace").addEventListener("click", function () {
+    var idx = Number($("place").value) - DEFAULT_PLACES.length;
+    if (idx < 0) return;
+    if (useDb) {
+      var id = customPlaces[idx].id;
+      $("place").value = "";
+      db.collection("places").doc(id).delete().then(null, function () { flash($("delPlace"), SAVE_FAIL); });
+      $("delPlace").hidden = true;
+    } else {
+      customPlaces.splice(idx, 1);
+      saveCustomPlaces();
+      renderPlaces();
+    }
+  });
+
+  var MONTHS =["January","February","March","April","May","June","July","August","September","October","November","December"];
+  function fmtDate(v) {
+    if (!v) return "";
+    var p = v.split("-");
+    if (p.length !== 3) return v;
+    return Number(p[2]) + " " + MONTHS[Number(p[1]) - 1] + " " + p[0];
+  }
+
+  function num(id) { var n = parseInt($(id).value, 10); return isNaN(n) || n < 0 ? 0 : n; }
+
+  function paxText(a, c) {
+    var parts = [];
+    if (a > 0) parts.push(a + (a === 1 ? " Adult" : " Adults"));
+    if (c > 0) parts.push(c + (c === 1 ? " Child" : " Children"));
+    return parts.join(" + ") || "0";
+  }
+
+  function build() {
+    var a = num("adults"), c = num("children");
+    var pa = num("priceAdult");
+    var pcRaw = $("priceChild").value.trim();
+    var pc = pcRaw === "" ? pa : num("priceChild");
+    var total = a * pa + c * pc;
+    var pax = paxText(a, c);
+
+    $("totalShow").textContent = total.toLocaleString("en-US");
+
+    var meet = $("modeMeet").checked;
+    $("placeBox").hidden = !meet;
+    $("pickupLabel").textContent = meet ? "เวลาที่ให้ไปถึงจุดนัดพบ" : "เวลารับ (Pick-up time)";
+    $("hotelLabel").textContent = meet ? "จุดนัดพบ (Meeting Point)" : "ชื่อโรงแรม";
+    var placeBlock = meet
+      ? "Meeting Point : " + $("hotel").value.trim() + "\n" +
+        $("map").value.trim() + "\n\n" +
+        "Please go to the meeting point at the time stated in your booking. 😊\n\n"
+      : "Hotel address:" + $("hotel").value.trim() + "\n" +
+        $("map").value.trim() + "\n\n" +
+        "Please wait at the hotel lobby.🥰\n\n";
+
+    var codeVal = $("code").value.trim();
+
+    var msg1 =
+      "Hello,🙏🏻🇹🇭\n\n" +
+      "Thank you for booking with us.\n\n" +
+      (codeVal ? "Code : " + codeVal + "\n\n" : "\n") +
+      "Tour Program :" + $("program").value.replace(/\s+$/, "") + "\n\n" +
+      "On :  " + fmtDate($("date").value) + "\n" +
+      (meet ? "Please arrive at the meeting point at : " : "Pick-up time between : ") + $("pickup").value.trim() + "\n" +
+      "Name : " + $("name").value.trim() + "\n" +
+      $("phone").value.trim() + "\n" +
+      "Pax :  " + pax + " \n\n" +
+      placeBlock +
+      "Best regards,\n" +
+      "Top Thailand Adventure Tours 🙏🏻🇹🇭";
+
+    $("msg1").value = msg1;
+    buildMsg2();
+  }
+
+  // Message 2 reads its own amount and pax fields, so they can be edited by hand.
+  function buildMsg2() {
+    var amount = $("payAmount").value.trim();
+    $("msg2").value =
+      "Confirmed booked.\n\n" +
+      "Please pay to my guide " + amount + " THB (" + $("payPax").value.trim() + ") \n" +
+      "To the guide in cash in the morning when he/her pick you up.\n\n" +
+      "Thank you 🥰🙏🏻";
+  }
+
+  // Fill the payment fields from the left-hand price and head count.
+  function syncPay() {
+    var a = num("adults"), c = num("children");
+    var pa = num("priceAdult");
+    var pcRaw = $("priceChild").value.trim();
+    var pc = pcRaw === "" ? pa : num("priceChild");
+    $("payAmount").value = a * pa + c * pc;
+    $("payPax").value = paxText(a, c);
+    buildMsg2();
+  }
+
+  function copyFrom(areaId, btnId) {
+    var area = $(areaId), btn = $(btnId);
+    var original = btn.getAttribute("data-label") || btn.textContent;
+    btn.setAttribute("data-label", original);
+    function ok() {
+      btn.textContent = "ก๊อปแล้ว";
+      btn.classList.add("done");
+      setTimeout(function () { btn.textContent = original; btn.classList.remove("done"); }, 1600);
+    }
+    function fallback() {
+      area.focus();
+      area.select();
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) {}
+      if (done) { ok(); }
+      else {
+        btn.textContent = "ข้อความถูกเลือกแล้ว กด Ctrl+C";
+        setTimeout(function () { btn.textContent = original; }, 2600);
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(area.value).then(ok, fallback);
+    } else { fallback(); }
+  }
+
+  $("copy1").addEventListener("click", function () { copyFrom("msg1", "copy1"); });
+  $("copy2").addEventListener("click", function () { copyFrom("msg2", "copy2"); });
+
+  $("preset").addEventListener("change", applyPreset);
+  $("modeHotel").addEventListener("change", build);
+  $("modeMeet").addEventListener("change", build);
+
+  $("savePreset").addEventListener("click", function () {
+    var text = $("program").value.replace(/\s+$/, "");
+    var title = text.split("\n")[0].trim();
+    if (!title) return;
+    var price = $("priceAdult").value;
+    var btn = $("savePreset");
+    var existing = -1;
+    custom.forEach(function (p, i) { if (p.name === title) existing = i; });
+    var item = { name: title, program: text, price: price === "" ? "" : Number(price) };
+    if (useDb) {
+      var ref = db.collection("presets").doc(existing >= 0 ? custom[existing].id : undefined);
+      pendingPreset = title;
+      ref.set(item).then(function () { flash(btn, "บันทึกแล้ว"); }, function () { pendingPreset = null; flash(btn, SAVE_FAIL); });
+    } else {
+      if (existing >= 0) custom[existing] = item; else custom.push(item);
+      saveCustom();
+      renderPresets(title);
+      flash(btn, "บันทึกแล้ว");
+    }
+  });
+
+  $("delPreset").addEventListener("click", function () {
+    var idx = Number($("preset").value) - DEFAULT_PRESETS.length;
+    if (idx < 0) return;
+    if (useDb) {
+      var id = custom[idx].id;
+      $("preset").value = "0";
+      db.collection("presets").doc(id).delete().then(null, function () { flash($("delPreset"), SAVE_FAIL); });
+      $("delPreset").hidden = true;
+      applyPreset();
+    } else {
+      custom.splice(idx, 1);
+      saveCustom();
+      renderPresets();
+      applyPreset();
+    }
+  });
+
+  $("clearCustomer").addEventListener("click", function () {
+    ["code", "name", "phone", "hotel", "map"].forEach(function (id) { $(id).value = ""; });
+    $("adults").value = 1;
+    $("children").value = 0;
+    $("name").focus();
+    build();
+    syncPay();
+  });
+
+  ["code", "date", "pickup", "name", "phone", "adults", "children", "hotel", "map", "priceAdult", "priceChild", "program"].forEach(function (id) {
+    $(id).addEventListener("input", build);
+  });
+  ["adults", "children", "priceAdult", "priceChild"].forEach(function (id) {
+    $(id).addEventListener("input", syncPay);
+  });
+  $("payAmount").addEventListener("input", buildMsg2);
+  $("payPax").addEventListener("input", buildMsg2);
+
+  // Start: tomorrow's date, first preset loaded.
+  (function init() {
+    var d = new Date();
+    d.setDate(d.getDate() + 1);
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    $("date").value = d.getFullYear() + "-" + m + "-" + day;
+    renderPresets();
+    renderPlaces();
+    $("preset").value = "0";
+    $("program").value = DEFAULT_PRESETS[0].program;
+    build();
+    syncPay();
+    connectShared();
+  })();
+
+  /* ---------- Quick replies (ข้อความสำเร็จรูป) ---------- */
+  var DEFAULT_REPLIES = [
+    { title: "ขายทัวร์เพิ่ม (ส่วนลดขอบคุณ)", text: [
+      "As a thank you for booking with us, ",
+      "enjoy a 💖*special discount*📌 on any other tour! 🎁✨ ",
+      "No upfront payment—book now ",
+      "and pay your guide in cash on the day. 💵😊 ",
+      "What’s next on your travel list? 🙏"].join("\n") },
+    { title: "ลูกค้าต้องการจอง", text: [
+      "To make a booking, please provide us with the following information:",
+      "Full Name:",
+      "Hotel Name:",
+      "Number of People:",
+      "Tour Date:",
+      "💵 Pay cash directly to the guide on pick-up.",
+      "🚐 Pick-up: {pickup} at your hotel lobby.",
+      "✅ Free cancellation until 7:00PM the day before.",
+      "Please feel free to contact us if you have any questions."].join("\n") },
+    { title: "เล่นน้ำกับช้าง: สิ่งที่ต้องเตรียม", text: [
+      "👕 Comfortable clothes for playing in the water with the elephants",
+      "👟 Sport shoes",
+      "🩴 Sandals",
+      "🧖‍♂️ Towel",
+      "☀️ Sunscreen",
+      "🦟 Insect repellent"].join("\n") },
+    { title: "เสนอรถรับส่งไปปางช้าง", text: [
+      "Hi 😊 If you need transportation, we offer a private round-trip transfer to the elephant sanctuary for 850 THB per group.",
+      "If you arrange transportation by yourself, please note that Grab drivers may sometimes cancel or be difficult to find, which can cause delays.",
+      "If you’d like to book our transfer, just send us your hotel name."].join("\n") },
+    { title: "เดินป่า: สิ่งที่ต้องเตรียม", text: [
+      "*What to bring on tour*😃",
+      "Long/Short pants",
+      "Long/Shot Sleeve shirt",
+      "Sport shoes",
+      "Socks",
+      "Sandal",
+      "Towel",
+      "Swimming suit",
+      "Sun cream",
+      "Mosquito sprays",
+      "toilet paper",
+      "Small bag",
+      "Personal",
+      "medicine small flashlight"].join("\n") }
+  ];
+
+  var replies = [];
+  var cardEls = {};
+  var pickupBy = {};
+  var pendingFocus = null;
+  var DEFAULT_PICKUP = "7:00–7:30 AM";
+
+  function seedLocal() {
+    return DEFAULT_REPLIES.map(function (r, i) { return { id: "d" + (i + 1), title: r.title, text: r.text, order: i + 1 }; });
+  }
+  function loadLocalReplies() {
+    var raw = null;
+    try { raw = localStorage.getItem("bmm_replies"); } catch (e) {}
+    if (raw === null) { replies = seedLocal(); return; }
+    try { replies = JSON.parse(raw) || []; } catch (e) { replies = seedLocal(); }
+  }
+  function saveLocalReplies() {
+    if (useDb) return;
+    try { localStorage.setItem("bmm_replies", JSON.stringify(replies)); } catch (e) {}
+  }
+  function findReply(id) { for (var i = 0; i < replies.length; i++) if (replies[i].id === id) return replies[i]; return null; }
+
+  function buildCard(id) {
+    var el = document.createElement("div");
+    el.className = "reply";
+    el.innerHTML =
+      '<input type="text" class="rtitle" aria-label="ชื่อข้อความ" autocomplete="off">' +
+      '<textarea class="rtext" rows="6" aria-label="ข้อความ"></textarea>' +
+      '<div class="pickrow" hidden><label>เวลารับ (แทนที่ {pickup} ตอนก๊อป)</label><input type="text" class="rpick" autocomplete="off"></div>' +
+      '<div class="actions"><button type="button" class="copy rcopy">ก๊อปข้อความ</button><button type="button" class="small danger rdel">ลบ</button></div>';
+    var title = el.querySelector(".rtitle"), ta = el.querySelector(".rtext");
+    var pick = el.querySelector(".rpick"), pickrow = el.querySelector(".pickrow");
+    var copyBtn = el.querySelector(".rcopy"), delBtn = el.querySelector(".rdel");
+    pick.value = pickupBy[id] || DEFAULT_PICKUP;
+
+    function sizeIt() { ta.rows = Math.min(16, Math.max(4, ta.value.split("\n").length + 1)); }
+    function togglePick() { pickrow.hidden = ta.value.indexOf("{pickup}") < 0; }
+    el._sync = function () { sizeIt(); togglePick(); };
+
+    ta.addEventListener("input", el._sync);
+    pick.addEventListener("input", function () { pickupBy[id] = pick.value; });
+    title.addEventListener("change", function () { saveReply(id, title.value, ta.value); });
+    ta.addEventListener("change", function () { saveReply(id, title.value, ta.value); });
+
+    copyBtn.addEventListener("click", function () {
+      var p = (pick.value || "").trim() || DEFAULT_PICKUP;
+      var tmp = document.createElement("textarea");
+      tmp.value = ta.value.replace(/\{pickup\}/g, p);
+      copyText(tmp.value, copyBtn, ta);
+    });
+
+    var armed = false;
+    delBtn.addEventListener("click", function () {
+      if (!armed) {
+        armed = true;
+        delBtn.textContent = "กดอีกครั้งเพื่อลบ";
+        setTimeout(function () { armed = false; delBtn.textContent = "ลบ"; }, 2500);
+        return;
+      }
+      deleteReply(id);
+    });
+    return el;
+  }
+
+  function updateCard(el, r) {
+    var title = el.querySelector(".rtitle"), ta = el.querySelector(".rtext");
+    if (document.activeElement !== title) title.value = r.title;
+    if (document.activeElement !== ta) ta.value = r.text;
+    el._sync();
+  }
+
+  function renderReplies() {
+    var list = $("replyList");
+    replies.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var keep = {};
+    replies.forEach(function (r, i) {
+      keep[r.id] = true;
+      var el = cardEls[r.id];
+      if (!el) { el = buildCard(r.id); cardEls[r.id] = el; }
+      updateCard(el, r);
+      if (list.children[i] !== el) list.insertBefore(el, list.children[i] || null);
+    });
+    Object.keys(cardEls).forEach(function (id) {
+      if (!keep[id]) { cardEls[id].remove(); delete cardEls[id]; }
+    });
+    $("replyEmpty").hidden = replies.length > 0;
+    if (pendingFocus && cardEls[pendingFocus]) {
+      var t = cardEls[pendingFocus].querySelector(".rtitle");
+      pendingFocus = null;
+      t.focus(); t.select();
+    }
+  }
+
+  function saveReply(id, title, text) {
+    var r = findReply(id);
+    if (!r) return;
+    r.title = title; r.text = text;
+    if (useDb) {
+      db.collection("replies").doc(id).set({ title: title, text: text, order: r.order || Date.now() })
+        .then(null, function () { flash(cardEls[id].querySelector(".rcopy"), SAVE_FAIL); });
+    } else { saveLocalReplies(); }
+  }
+
+  function deleteReply(id) {
+    if (useDb) {
+      db.collection("replies").doc(id).delete().then(null, function () {
+        if (cardEls[id]) flash(cardEls[id].querySelector(".rdel"), SAVE_FAIL);
+      });
+    } else {
+      replies = replies.filter(function (r) { return r.id !== id; });
+      saveLocalReplies();
+      renderReplies();
+    }
+  }
+
+  $("addReply").addEventListener("click", function () {
+    var item = { title: "ข้อความใหม่", text: "", order: Date.now() };
+    if (useDb) {
+      var ref = db.collection("replies").doc();
+      pendingFocus = ref.id;
+      ref.set(item).then(null, function () { pendingFocus = null; flash($("addReply"), SAVE_FAIL); });
+    } else {
+      item.id = "l" + item.order;
+      replies.push(item);
+      pendingFocus = item.id;
+      saveLocalReplies();
+      renderReplies();
+    }
+  });
+
+  $("seedReplies").addEventListener("click", function () {
+    if (useDb) {
+      DEFAULT_REPLIES.forEach(function (r, i) {
+        db.collection("replies").doc("default-" + (i + 1)).set({ title: r.title, text: r.text, order: i + 1 })
+          .then(null, function () { flash($("seedReplies"), SAVE_FAIL); });
+      });
+    } else {
+      replies = seedLocal();
+      saveLocalReplies();
+      renderReplies();
+    }
+  });
+
+  function showTab(which) {
+    var q = which === "quick";
+    $("viewBooking").hidden = q;
+    $("viewQuick").hidden = !q;
+    $("tabBooking").classList.toggle("on", !q);
+    $("tabQuick").classList.toggle("on", q);
+    $("tabBooking").setAttribute("aria-selected", String(!q));
+    $("tabQuick").setAttribute("aria-selected", String(q));
+    if (q) Object.keys(cardEls).forEach(function (id) { cardEls[id]._sync(); });
+  }
+  $("tabBooking").addEventListener("click", function () { showTab("booking"); });
+  $("tabQuick").addEventListener("click", function () { showTab("quick"); });
+
+  // Shared copy helper: clipboard first, then select-and-copy fallback.
+  function copyText(value, btn, fallbackArea) {
+    var original = btn.getAttribute("data-label") || btn.textContent;
+    btn.setAttribute("data-label", original);
+    function ok() {
+      btn.textContent = "ก๊อปแล้ว";
+      btn.classList.add("done");
+      setTimeout(function () { btn.textContent = original; btn.classList.remove("done"); }, 1600);
+    }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = value;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      if (done) ok();
+      else {
+        if (fallbackArea) { fallbackArea.focus(); fallbackArea.select(); }
+        btn.textContent = "เลือกข้อความแล้ว กด Ctrl+C";
+        setTimeout(function () { btn.textContent = original; }, 2600);
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(ok, fallback);
+    } else { fallback(); }
+  }
+
+  loadLocalReplies();
+  renderReplies();
+
+  // Light up shared lists when the viewer grants db; otherwise the page keeps working with local lists.
+  function connectShared() {
+    if (!window.claude || !window.claude.use) return;
+    window.claude.use("db").then(function (d) {
+      if (!d) return;
+      db = d;
+      useDb = true;
+      $("syncNote").textContent = "รายการที่บันทึกไว้ใช้ร่วมกันทุกคนที่เปิดหน้านี้";
+
+      db.collection("presets").onSnapshot(function (snap) {
+        var keep = pendingPreset || selectedPresetName();
+        custom = snap.docs.map(function (doc) {
+          var x = doc.data() || {};
+          return { id: doc.id, name: String(x.name || ""), program: String(x.program || ""), price: x.price == null ? "" : x.price };
+        }).filter(function (p) { return p.name; }).sort(byName);
+        pendingPreset = null;
+        renderPresets(keep);
+      }, function () {});
+
+      db.collection("replies").onSnapshot(function (snap) {
+        replies = snap.docs.map(function (doc) {
+          var x = doc.data() || {};
+          return { id: doc.id, title: String(x.title || ""), text: String(x.text || ""), order: Number(x.order) || 0 };
+        });
+        renderReplies();
+      }, function () {});
+
+      db.collection("places").onSnapshot(function (snap) {
+        var keep = pendingPlace || selectedPlaceName();
+        customPlaces = snap.docs.map(function (doc) {
+          var x = doc.data() || {};
+          return { id: doc.id, name: String(x.name || ""), map: String(x.map || "") };
+        }).filter(function (p) { return p.name; }).sort(byName);
+        pendingPlace = null;
+        renderPlaces(keep);
+      }, function () {});
+    }, function () {});
+  }
+</script>
